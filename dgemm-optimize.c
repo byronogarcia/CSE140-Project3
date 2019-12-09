@@ -13,6 +13,7 @@ UNROLLING - 40PTS
 PADDING MATRICES - 4OPT
 */
 
+/*
 void dgemm( int m, int n, float *A, float *C ) {
 	//UNROLLING
 	int i, j, k, l;
@@ -34,7 +35,7 @@ void dgemm( int m, int n, float *A, float *C ) {
 		}
 	}
 }
-
+*/
 /*
 //DOESNT WORK TOO WELL YET, CACHE BLOCKING BELOW
 void dgemm( int m, int n, float *A, float *C ) {
@@ -73,7 +74,19 @@ pseudocode for blocked (Tiled)
       	 {write block C(i,j) back to slow memory}
 
 
-void dgemm( int m, int n, float *A, float *C ) {
-// FILL-IN 
-}
+
 */
+
+void dgemm(int m, int n, float *A, float *C ) { //PRE-FETCH
+    //We will re-order the operations so that pre-fetch will be easier to predict
+    //I couldn't get faster results using __builtin_prefetch()
+    for(int k = 0; k < n; k++){
+        for(int i = 0; i < m; i++){
+            float* statA = &A[i + k*m]; //fetch the stationary address
+            float* moveA = &A[k*m]; //fetch the moving address, we reordered so that we can increment by 1!
+            for(int j = 0; j < m; j++){
+                C[i+j*m] += (*statA) * (*moveA++); //prefetch the next moveA
+            }
+        }
+    }
+}
