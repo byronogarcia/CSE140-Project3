@@ -36,9 +36,42 @@ void dgemm( int m, int n, float *A, float *C ) {
 }
 
 /*
+//DOESNT WORK TOO WELL YET, CACHE BLOCKING BELOW
 void dgemm( int m, int n, float *A, float *C ) {
-// FILL-IN  
+int i, j, k, l;
+    int leftOvers = n - (n % 4);
+    for (l = 0; l < leftOvers; l += 4) {
+        for (j = 0; j < m; j++) {
+            for (i = 0; i < m; i++) {
+                float r = C[i+j*m];
+                for (k = l; k < l + 4; k++) {
+                    r += A[j+k*m] *A[i+k*m];
+                }
+                C[i+j*m] = r;
+            }
+        }
+    }
+    for (k = leftOvers; k < n; k++) {
+        for (j = 0; j < m; j++) {
+            for (i = 0; i < m; i++) {
+                C[i+j*m] += A[j+k*m] * A[i+k*m];
+            }
+        }
+    }
 }
+
+Consider A,B,C to be N-by-N matrices of b-by-b subblocks where
+b=n / N is called the block size 
+pseudocode for blocked (Tiled)
+	   for i = 1 to N
+ 	      for j = 1 to N
+       	{read block C(i,j) into fast memory}
+       	for k = 1 to N
+           	       {read block A(i,k) into fast memory}
+           	       {read block B(k,j) into fast memory}
+          	        C(i,j) = C(i,j) + A(i,k) * B(k,j) {do a matrix multiply on blocks}
+      	 {write block C(i,j) back to slow memory}
+
 
 void dgemm( int m, int n, float *A, float *C ) {
 // FILL-IN 
