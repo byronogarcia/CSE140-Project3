@@ -13,7 +13,7 @@ UNROLLING - 40PTS
 PADDING MATRICES - 4OPT
 */
 
-/*
+
 void dgemm( int m, int n, float *A, float *C ) {
 	//UNROLLING
 	int i, j, k, l;
@@ -35,58 +35,61 @@ void dgemm( int m, int n, float *A, float *C ) {
 		}
 	}
 }
-*/
-/*
+
 //DOESNT WORK TOO WELL YET, CACHE BLOCKING BELOW
-void dgemm( int m, int n, float *A, float *C ) {
-int i, j, k, l;
-    int leftOvers = n - (n % 4);
-    for (l = 0; l < leftOvers; l += 4) {
-        for (j = 0; j < m; j++) {
-            for (i = 0; i < m; i++) {
-                float r = C[i+j*m];
-                for (k = l; k < l + 4; k++) {
-                    r += A[j+k*m] *A[i+k*m];
-                }
-                C[i+j*m] = r;
-            }
-        }
-    }
-    for (k = leftOvers; k < n; k++) {
-        for (j = 0; j < m; j++) {
-            for (i = 0; i < m; i++) {
-                C[i+j*m] += A[j+k*m] * A[i+k*m];
-            }
-        }
-    }
-}
+// void dgemm( int m, int n, float *A, float *C ) {
+// 	int i, j, k, l;
+// 	int tile_size = 16;
+// 	int leftOvers = n - (n % tile_size);
+// 	for (l = 0; l < leftOvers; l += tile_size) {
+// 		for (j = 0; j < m; j++) {
+// 			for (i = 0; i < m; i++) {
+// 				float r = C[i+j*m];
+// 				for (k = l; k < l + tile_size; k++) {
+// 					r += A[j+k*m] *A[i+k*m];
+// 				}
+// 				C[i+j*m] = r;
+// 			}
+// 		}
+// 	}
+	
+// 	for (k = leftOvers; k < n; k++) {
+// 		for (j = 0; j < m; j++) {
+// 			float *Cloc = &C[j*m];
+// 			float *Aloc = &A[k*m];
+// 			float *Astat = &A[j+k*m];
+// 			for (i = 0; i < m; i++) {
+// 				*Cloc++ += (*Astat)* (*Aloc++);
+// 			}
+// 		}
+// 	}
+// }
 
-Consider A,B,C to be N-by-N matrices of b-by-b subblocks where
-b=n / N is called the block size 
-pseudocode for blocked (Tiled)
+/*
+Consider A,B,C to be N-by-N matrices of b-by-b subblocks where b=n / N is called the block size
+pseudocode for   blocked (Tiled)
 	   for i = 1 to N
- 	      for j = 1 to N
-       	{read block C(i,j) into fast memory}
-       	for k = 1 to N
-           	       {read block A(i,k) into fast memory}
-           	       {read block B(k,j) into fast memory}
-          	        C(i,j) = C(i,j) + A(i,k) * B(k,j) {do a matrix multiply on blocks}
-      	 {write block C(i,j) back to slow memory}
-
-
-
+		  for j = 1 to N
+		{read block C(i,j) into fast memory}
+		for k = 1 to N
+				   {read block A(i,k) into fast memory}
+				   {read block B(k,j) into fast memory}
+					C(i,j) = C(i,j) + A(i,k) * B(k,j) {do a matrix multiply on blocks}
+		 {write block C(i,j) back to slow memory}
 */
 
-void dgemm(int m, int n, float *A, float *C ) { //PRE-FETCH
-    //We will re-order the operations so that pre-fetch will be easier to predict
-    //I couldn't get faster results using __builtin_prefetch()
-    for(int k = 0; k < n; k++){
-        for(int i = 0; i < m; i++){
-            float* statA = &A[i + k*m]; //fetch the stationary address
-            float* moveA = &A[k*m]; //fetch the moving address, we reordered so that we can increment by 1!
-            for(int j = 0; j < m; j++){
-                C[i+j*m] += (*statA) * (*moveA++); //prefetch the next moveA
-            }
-        }
-    }
-}
+
+// void dgemm(int m, int n, float *A, float *C ) { //PRE-FETCH
+// 	//We will re-order the operations so that pre-fetch will be easier to predict
+// 	//I couldn't get faster results using __builtin_prefetch()
+// 	for(int k = 0; k < n; k++){
+// 		for(int i = 0; i < m; i++){
+// 			float* statA = &A[i + k*m]; //fetch the stationary address
+// 			float* moveA = &A[k*m]; //fetch the moving address, we reordered so that we can increment by 1!
+// 			for(int j = 0; j < m; j++){
+// 				C[i+j*m] += (*statA) * (*moveA++); //prefetch the next moveA
+// 			}
+// 		}
+// 	}
+// }
+ 
